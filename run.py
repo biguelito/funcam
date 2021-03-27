@@ -1,19 +1,22 @@
 from cam import Cam
-from fakecam import MyVideoSource
-
-import virtualvideo
-
+from vcam import VCam
+import sys
 
 if __name__ == '__main__':
 
-    """fakecam"""
-    # print('fakecam on')
-    # vidsrc = MyVideoSource()
-    # fvd = virtualvideo.FakeVideoDevice()
-    # fvd.init_input(vidsrc)
-    # fvd.init_output(4, 640, 480)
-    # fvd.run()
+    mode = sys.argv[1]
 
-    """own cam"""
-    cv = Cam()
-    cv.open()
+    if mode == 'c':
+        # own cam
+        vc = Cam()
+        vc.open()
+
+    elif mode == 'v':
+        # virtual cam
+        vc = VCam()
+        vc.start()
+
+    else:
+        print('please run "python3 run.py [c/v]"')
+        print('c for see your cam')
+        print('v for activate virtual cam')
