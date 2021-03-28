@@ -9,7 +9,7 @@ class Cam:
         self.cam = cv2.VideoCapture(0)
         self.rval, self.frame = self.cam.read()
 
-        self.filterList = ['normal','negative']
+        self.filterList = ['normal', 'negative', 'bgr2gray']
         self.filterIndex = 0
 
     def open(self):

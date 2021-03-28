@@ -6,7 +6,7 @@ from basicsfilters import BasicsFilters
 class VCam:
 
     def __init__(self):
-        cv2.namedWindow("preview")
+        cv2.namedWindow('feedback')
         self.vc = cv2.VideoCapture(0)
         if not self.vc.isOpened():
             raise RuntimeError('Could not open video source')
@@ -43,7 +43,7 @@ class VCam:
                     self.camInputs()
 
                     # See feedback
-                    cv2.imshow("feedback", self.frame)
+                    cv2.imshow('feedback', self.frame)
                     # Send to virtual cam.
                     cam.send(self.frame)
 
@@ -53,7 +53,7 @@ class VCam:
     def camInputs(self):
         key = cv2.waitKey(20)
         if key == 27:  # exit on ESC
-            cv2.destroyWindow("preview")
+            cv2.destroyWindow('feedback')
             self.vc.release()
         elif key == 91:
             self.filterIndex = (self.filterIndex - 1) % len(self.filterList)
