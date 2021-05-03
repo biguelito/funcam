@@ -1,22 +1,24 @@
+#!/home/gabriel/funcam/funcam-venv/bin/python3.8
+
 from cam import Cam
 from vcam import VCam
-import sys
+import argparse
 
 if __name__ == '__main__':
 
-    mode = sys.argv[1]
+    parser = argparse.ArgumentParser()
 
-    if mode == 'c':
-        # own cam
-        vc = Cam()
-        vc.open()
+    parser.add_argument('-v', '--virtual',
+                        help='enable virtual cam',
+                        action='store_true')
+    args = parser.parse_args()
 
-    elif mode == 'v':
+    if args.virtual:
         # virtual cam
         vc = VCam()
         vc.start()
 
     else:
-        print('please run "python3 run.py [c/v]"')
-        print('c for see your cam')
-        print('v for activate virtual cam')
+        # own cam
+        vc = Cam()
+        vc.open()

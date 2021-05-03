@@ -7,24 +7,20 @@ class VCam:
 
     def __init__(self):
         cv2.namedWindow('feedback')
+        self.camerror = True
+
         self.vc = cv2.VideoCapture(0)
         if not self.vc.isOpened():
-            raise RuntimeError('Could not open video source')
+            raise RuntimeError('Can\'t open your camera, please check if videocap is validy device using "v4l2-ctl --list-device"')
 
-        pref_width = 1280
-        pref_height = 720
-        pref_fps_in = 30
-        self.vc.set(cv2.CAP_PROP_FRAME_WIDTH, pref_width)
-        self.vc.set(cv2.CAP_PROP_FRAME_HEIGHT, pref_height)
-        self.vc.set(cv2.CAP_PROP_FPS, pref_fps_in)
+        self.vc.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+        self.vc.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+        self.vc.set(cv2.CAP_PROP_FPS, 30)
 
         # Query final capture device values (may be different from preferred settings).
         self.width = int(self.vc.get(cv2.CAP_PROP_FRAME_WIDTH))
         self.height = int(self.vc.get(cv2.CAP_PROP_FRAME_HEIGHT))
-        self.fps_in = self.vc.get(cv2.CAP_PROP_FPS)
-        print(f'Webcam capture started ({self.width}x{self.height} @ {self.fps_in}fps)')
-
-        self.fps_out = 20
+        self.fps_out = self.vc.get(cv2.CAP_PROP_FPS)
 
         self.filterList = ['normal', 'negative', 'bgr2gray']
         self.filterIndex = 0
@@ -48,12 +44,15 @@ class VCam:
                     cam.send(self.frame)
 
         except RuntimeError:
-            print('Virtual cam closed')
+            if self.camerror:
+                print('Can\'t use virtual camera, please try "sudo modprobe v4l2loopback"')
+            print('Virtual camera closed')
 
     def camInputs(self):
         key = cv2.waitKey(20)
         if key == 27:  # exit on ESC
             cv2.destroyWindow('feedback')
+            self.camerror = False
             self.vc.release()
         elif key == 91:
             self.filterIndex = (self.filterIndex - 1) % len(self.filterList)
