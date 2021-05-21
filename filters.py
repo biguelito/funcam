@@ -2,7 +2,10 @@ import cv2
 import numpy as np
 
 
-class BasicsFilters:
+class Filters:
+
+    def __init__(self):
+        tracker = Tracker()
 
     def normal(frame):
         return frame
