@@ -25,6 +25,7 @@ class Cam:
         self.detector = htm.HandDetector(detectionCon=detCon)
         self.finger = f
         self.pressing = False
+        self.initialTime = time.time()
 
         # Creating camera
         self.cam = cv2.VideoCapture(self.videocap)
@@ -50,42 +51,8 @@ class Cam:
             if not self.ret:
                 raise RuntimeError('Error fetching frame')
 
-            # Dealing with hand detection, from here ============================================
-            self.frame = self.detector.findHands(self.frame)
-            lmList = self.detector.findPosition(self.frame)
-
-            if lmList:
-                x8, y8 = lmList[self.finger][1], lmList[self.finger][2]
-
-                if math.hypot(x8 - self.nextX, y8 - self.nextY) <= 30:
-                    actual = time.time()
-
-                    if not self.pressing:
-                        self.pressing = True
-                        init = time.time()
-
-                    presstime = actual - init
-
-                    if presstime >= 1:
-                        self.filterIndex = (self.filterIndex + 1) % len(self.filterList)
-                        self.pressing = False
-
-                elif math.hypot(x8 - self.prevX, y8 - self.prevY) <= 30:
-                    actual = time.time()
-
-                    if not self.pressing:
-                        self.pressing = True
-                        init = time.time()
-
-                    presstime = actual - init
-                    
-                    if presstime >= 1:
-                        self.filterIndex = (self.filterIndex - 1) % len(self.filterList)
-                        self.pressing = False
-
-                else:
-                    self.pressing = False
-            # To here ===========================================================================
+            # Hand track control
+            self.handCommands()
 
             # Receiving input from keyboard
             self.inputKey = cv2.waitKey(1)
@@ -109,10 +76,45 @@ class Cam:
 
         print("camera closed")
 
-    def drawUtils(self):
-        # Drawing area for hand tracker commands
-        cv2.circle(self.frame, (self.nextX, self.nextY), self.radius, (255, 0, 0))
-        cv2.circle(self.frame, (self.prevX, self.prevY), self.radius, (255, 0, 0))
+    def handCommands(self):
+        self.frame = self.detector.findHands(self.frame)
+        lmList = self.detector.findPosition(self.frame)
+
+        if lmList:
+            fingerX, fingerY = lmList[self.finger][1], lmList[self.finger][2]
+            init = time.time()
+
+            if math.hypot(fingerX - self.nextX, fingerY - self.nextY) <= 30:
+                actual = time.time()
+
+                if not self.pressing:
+                    self.pressing = True
+                    self.initialTime = init
+
+                else:
+                    presstime = actual - self.initialTime
+
+                    if presstime >= 1:
+                        self.filterIndex = (self.filterIndex + 1) % len(self.filterList)
+                        self.pressing = False
+
+            elif math.hypot(fingerX - self.prevX, fingerY - self.prevY) <= 30:
+                actual = time.time()
+
+                if not self.pressing:
+                    self.pressing = True
+                    self.initialTime = init
+
+                else:
+                    presstime = actual - self.initialTime
+
+                    if presstime >= 1:
+                        self.filterIndex = (self.filterIndex - 1) % len(self.filterList)
+                        self.pressing = False
+
+            else:
+                self.pressing = False
+                self.initialTime = init
 
     def camInputs(self):
         # Using input keyboard
@@ -129,3 +131,8 @@ class Cam:
         # ]
         elif self.inputKey == 93:
             self.filterIndex = (self.filterIndex + 1) % len(self.filterList)
+
+    def drawUtils(self):
+        # Drawing area for hand tracker commands
+        cv2.circle(self.frame, (self.nextX, self.nextY), self.radius, (255, 0, 0))
+        cv2.circle(self.frame, (self.prevX, self.prevY), self.radius, (255, 0, 0))
