@@ -1,31 +1,37 @@
 import cv2
 from filters import Filters
 import ML.HandTrackingModule as htm
-import time
 import math
+from datetime import datetime
 
 
 class Cam:
 
-    def __init__(self, video=0, f=8, detCon=0.5, cw=640, ch=480, du=False):
+    def __init__(self, mxhand, video, f, p, detCon=0.5, cw=640, ch=480, du=True):
         # Basics
         cv2.namedWindow("ESC to close")
         self.videocap = video
         self.filterList = ['normal', 'negative', 'bgr2gray']
         self.filterIndex = 0
-        self.inputKey = 0
+        self.filter = 'normal'
+        self.inputKey = -1
 
         # Utils
         self.toDU = du
-        self.nextX, self.nextY = 600, 240
-        self.prevX, self.prevY = 40, 240
+        self.nextX, self.nextY = cw-40, ch//2
+        self.prevX, self.prevY = 40, ch//2
+        self.escX, self.escY = cw-40, 40
         self.radius = 40
 
         # Hand tracking
-        self.detector = htm.HandDetector(detectionCon=detCon)
+        self.detector = htm.HandDetector(detectionCon=detCon, maxHands=mxhand)
         self.finger = f
         self.pressing = False
-        self.initialTime = time.time()
+        self.initialTime = datetime.timestamp(datetime.now())
+        self.phototimerinit = datetime.timestamp(datetime.now())
+        self.saveframe = False
+        self.photocouting = 0
+        self.isphotomode = p
 
         # Creating camera
         self.cam = cv2.VideoCapture(self.videocap)
@@ -60,16 +66,22 @@ class Cam:
                 self.camInputs()
 
             # Apllying filter on frame
-            filter = self.filterList[self.filterIndex]
-            self.frame = getattr(Filters, filter)(self.frame)
+            self.filter = self.filterList[self.filterIndex]
+            self.frame = getattr(Filters, self.filter)(self.frame)
 
             # Putting extra info on frame
-            cTime = time.time()
+            cTime = datetime.timestamp(datetime.now())
             fps = int(1 / (cTime - pTime))
             pTime = cTime
             cv2.putText(self.frame, str(fps), (10, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
+            if self.photocouting != 0:
+                if self.photocouting != 5:
+                    cv2.putText(self.frame, str(self.photocouting), (10, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
+                else:
+                    cv2.putText(self.frame, 'Say X', (10, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 0, 0), 2)
             if self.toDU:
                 self.drawUtils()
+                self.detector.drawMarks(self.frame, drawFingerMark=[self.finger])
 
             # Showing frame
             cv2.imshow("ESC to close", self.frame)
@@ -77,44 +89,95 @@ class Cam:
         print("camera closed")
 
     def handCommands(self):
-        self.frame = self.detector.findHands(self.frame)
-        lmList = self.detector.findPosition(self.frame)
+        self.detector.findHands(self.frame)
+        lmList, bbox = self.detector.findPosition(self.frame)
+
+        if self.isphotomode:
+            self.photo(lmList, bbox)
 
         if lmList:
             fingerX, fingerY = lmList[self.finger][1], lmList[self.finger][2]
-            init = time.time()
 
+            init = datetime.timestamp(datetime.now())
+
+            # next filter
             if math.hypot(fingerX - self.nextX, fingerY - self.nextY) <= 30:
-                actual = time.time()
+                actual = datetime.timestamp(datetime.now())
 
                 if not self.pressing:
                     self.pressing = True
                     self.initialTime = init
 
                 else:
-                    presstime = actual - self.initialTime
-
-                    if presstime >= 1:
+                    presstime = int(actual - self.initialTime)
+                    if presstime == 1:
                         self.filterIndex = (self.filterIndex + 1) % len(self.filterList)
                         self.pressing = False
 
+            # previus filter
             elif math.hypot(fingerX - self.prevX, fingerY - self.prevY) <= 30:
-                actual = time.time()
+                actual = datetime.timestamp(datetime.now())
 
                 if not self.pressing:
                     self.pressing = True
                     self.initialTime = init
 
                 else:
-                    presstime = actual - self.initialTime
+                    presstime = int(actual - self.initialTime)
 
-                    if presstime >= 1:
+                    if presstime == 1:
                         self.filterIndex = (self.filterIndex - 1) % len(self.filterList)
+                        self.pressing = False
+
+            # close cam
+            elif math.hypot(fingerX - self.escX, fingerY - self.escY) <= 30:
+                actual = datetime.timestamp(datetime.now())
+
+                if not self.pressing:
+                    self.pressing = True
+                    self.initialTime = init
+
+                else:
+                    presstime = int(actual - self.initialTime)
+
+                    if presstime == 2:
+                        self.cam.release()
+                        self.display = False
                         self.pressing = False
 
             else:
                 self.pressing = False
                 self.initialTime = init
+
+    def photo(self, lml, bbox):
+        lmList, bbox = lml, bbox
+
+        if self.saveframe:
+            actualpt = datetime.timestamp(datetime.now())
+            ptr = int(actualpt - self.phototimerinit)
+            if ptr > self.photocouting:
+                self.photocouting = ptr
+                if self.photocouting == 6:
+                    photoname = datetime.now()
+                    self.frame = getattr(Filters, self.filter)(self.frame)
+                    cv2.imwrite(f'photos/{photoname}.jpg', self.frame)
+                    self.saveframe = False
+                    self.photocouting = 0
+
+                    cv2.imshow(str(photoname), self.frame)
+
+        if lmList:
+            init = datetime.timestamp(datetime.now())
+
+            handprop = (bbox[2] - bbox[0]) / (bbox[3] - bbox[1])
+            if handprop >= 1.7:
+                self.saveframe = False
+                self.photocouting = 0
+
+            fingersUP = self.detector.fingersUp()
+            if not self.saveframe and fingersUP.count(1) == 0:
+                self.saveframe = True
+                self.phototimerinit = init
 
     def camInputs(self):
         # Using input keyboard
@@ -136,3 +199,4 @@ class Cam:
         # Drawing area for hand tracker commands
         cv2.circle(self.frame, (self.nextX, self.nextY), self.radius, (255, 0, 0))
         cv2.circle(self.frame, (self.prevX, self.prevY), self.radius, (255, 0, 0))
+        cv2.circle(self.frame, (self.escX, self.escY), self.radius, (255, 0, 0))

@@ -4,9 +4,6 @@ import numpy as np
 
 class Filters:
 
-    def __init__(self):
-        tracker = Tracker()
-
     def normal(frame):
         return frame
 
