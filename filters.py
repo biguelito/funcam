@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 
 
-class BasicsFilters:
+class Filters:
 
     def normal(frame):
         return frame
