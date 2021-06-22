@@ -78,7 +78,7 @@ class VCam:
                 cam.send(self.frame)
                 if self.toDU:
                     self.drawUtils()
-                    self.detector.drawMarks(self.frame, drawOn=[self.finger])
+                    self.detector.drawMarks(self.frame, drawFingerMark=[self.finger])
                 cv2.imshow('feedback', self.frame)
 
         print('Virtual camera closed')
