@@ -1,9 +1,9 @@
-#!/home/gabriel/funcam/funcam-venv/bin/python3.8
-# ONLY TESTED ON UBUNTU
-# To run using ./run.py [args] on your terminal
-# point the first line to your virtual environment or some python interpreter
-# containing the requirements
-
+#!./venv/bin/python3
+# ONLY TESTED ON LINUX
+# To run using ./run.py [args] on your terminal (without python3)
+# point the first line to some python interpreter containing the requirements
+# or create a venv inside this project.
+# Or delete this to use another method.
 
 from cam import Cam
 from vcam import VCam
