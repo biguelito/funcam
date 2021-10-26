@@ -1,4 +1,4 @@
-#!./venv/bin/python3
+#!/home/reis-usb/funcam/venv/bin/python3
 # ONLY TESTED ON LINUX
 # To run using ./run.py [args] on your terminal (without python3)
 # point the first line to some python interpreter containing the requirements
