@@ -1,13 +1,13 @@
 import cv2
 from filters import Filters
-import ML.HandTrackingModule as htm
+import Tracking.HandTracking as htm
 import math
 from datetime import datetime
 
 
 class Cam:
 
-    def __init__(self, mxhand, video, f, p, detCon=0.5, cw=640, ch=480, du=True):
+    def __init__(self, mxhand, video, f, detCon=0.5, cw=640, ch=480, du=True):
         # Basics
         cv2.namedWindow("ESC to close")
         self.videocap = video
@@ -28,10 +28,6 @@ class Cam:
         self.finger = f
         self.pressing = False
         self.initialTime = datetime.timestamp(datetime.now())
-        self.phototimerinit = datetime.timestamp(datetime.now())
-        self.saveframe = False
-        self.photocouting = 0
-        self.isphotomode = p
 
         # Creating camera
         self.cam = cv2.VideoCapture(self.videocap)
@@ -74,11 +70,7 @@ class Cam:
             fps = int(1 / (cTime - pTime))
             pTime = cTime
             cv2.putText(self.frame, str(fps), (10, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
-            if self.photocouting != 0:
-                if self.photocouting != 5:
-                    cv2.putText(self.frame, str(self.photocouting), (10, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
-                else:
-                    cv2.putText(self.frame, 'Say X', (10, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 0, 0), 2)
+            
             if self.toDU:
                 self.drawUtils()
                 self.detector.drawMarks(self.frame, drawFingerMark=[self.finger])
@@ -91,9 +83,6 @@ class Cam:
     def handCommands(self):
         self.detector.findHands(self.frame)
         lmList, bbox = self.detector.findPosition(self.frame)
-
-        if self.isphotomode:
-            self.photo(lmList, bbox)
 
         if lmList:
             fingerX, fingerY = lmList[self.finger][1], lmList[self.finger][2]
@@ -149,43 +138,11 @@ class Cam:
                 self.pressing = False
                 self.initialTime = init
 
-    def photo(self, lml, bbox):
-        lmList, bbox = lml, bbox
-
-        if self.saveframe:
-            actualpt = datetime.timestamp(datetime.now())
-            ptr = int(actualpt - self.phototimerinit)
-            if ptr > self.photocouting:
-                self.photocouting = ptr
-                if self.photocouting == 6:
-                    photoname = datetime.now()
-                    self.frame = getattr(Filters, self.filter)(self.frame)
-                    cv2.imwrite(f'photos/{photoname}.jpg', self.frame)
-                    self.saveframe = False
-                    self.photocouting = 0
-
-                    cv2.imshow(str(photoname), self.frame)
-
-        if lmList:
-            init = datetime.timestamp(datetime.now())
-
-            handprop = (bbox[2] - bbox[0]) / (bbox[3] - bbox[1])
-            if handprop >= 1.7:
-                self.saveframe = False
-                self.photocouting = 0
-
-            fingersUP = self.detector.fingersUp()
-            if not self.saveframe and fingersUP.count(1) == 0:
-                self.saveframe = True
-                self.phototimerinit = init
-
     def camInputs(self):
         # Using input keyboard
         # ESC
         if self.inputKey == 27:
-            cv2.destroyWindow('ESC to close')
-            self.cam.release()
-            self.display = False
+            self.close()
 
         # [
         elif self.inputKey == 91:
@@ -200,3 +157,8 @@ class Cam:
         cv2.circle(self.frame, (self.nextX, self.nextY), self.radius, (255, 0, 0))
         cv2.circle(self.frame, (self.prevX, self.prevY), self.radius, (255, 0, 0))
         cv2.circle(self.frame, (self.escX, self.escY), self.radius, (255, 0, 0))
+
+    def close(self):
+        cv2.destroyWindow('ESC to close')
+        self.cam.release()
+        self.display = False

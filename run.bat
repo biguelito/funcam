@@ -1,0 +1,1 @@
+python .\funcam.py -d
