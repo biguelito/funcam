@@ -1,11 +1,5 @@
-#!/home/gabriel/funcam/venv/bin/python3
-# ONLY TESTED ON LINUX
-# To run using ./run.py [args] on your terminal (without python3)
-# point the first line to some python interpreter containing the requirements
-# or create a venv inside this project.
-# Or delete this to use another method.
-
-from cam import Cam
+from time import sleep
+from camera.cam import Cam
 import argparse
 
 if __name__ == '__main__':
@@ -18,5 +12,5 @@ if __name__ == '__main__':
     parser.add_argument('--finger', help='choose the finger for control', type=int, default=8, choices=[4, 8, 12, 16, 20])
     args = parser.parse_args()
 
-    cam = Cam(video=args.video, mxhand=args.maxhands, du=args.d, f=args.finger)
+    cam = Cam(video=args.video, mxhand=args.maxhands, markCommands=args.d, f=args.finger)
     cam.open()
